@@ -669,8 +669,14 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
   // Use the custom hook to determine the display type
   const displayRenderer = useResultDisplayRenderer(resultDisplay);
   const { compactMode } = useCompactMode();
+
+  // Per-tool collapse: completed tools default to collapsed (header only).
+  // In compact mode, the old behavior (hide all results) is preserved
+  // unless forceShowResult is set.
+  const isCompleted = status === ToolCallStatus.Success;
+  const shouldDefaultCollapse = isCompleted && !forceShowResult;
   const effectiveDisplayRenderer =
-    !compactMode || forceShowResult
+    (!compactMode || forceShowResult) && !shouldDefaultCollapse
       ? displayRenderer
       : { type: 'none' as const };
 
@@ -699,7 +705,7 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
         {emphasis === 'high' && <TrailingIndicator />}
       </Box>
       {effectiveDisplayRenderer.type !== 'none' && (
-        <Box paddingLeft={STATUS_INDICATOR_WIDTH} width="100%" marginTop={1}>
+        <Box paddingLeft={STATUS_INDICATOR_WIDTH} width="100%" marginTop={0}>
           <Box flexDirection="column">
             {effectiveDisplayRenderer.type === 'todo' && (
               <TodoResultRenderer data={effectiveDisplayRenderer.data} />
@@ -793,13 +799,15 @@ const ToolInfo: React.FC<ToolInfo> = ({
       }
     }
   }, [emphasis]);
+  const isDim = status === ToolCallStatus.Success;
   return (
     <Box flexGrow={1}>
       <Text
         wrap="truncate-end"
         strikethrough={status === ToolCallStatus.Canceled}
+        dimColor={isDim}
       >
-        <Text color={nameColor} bold>
+        <Text color={nameColor} bold={!isDim}>
           {name}
         </Text>{' '}
         <Text color={theme.text.secondary}>{description}</Text>
